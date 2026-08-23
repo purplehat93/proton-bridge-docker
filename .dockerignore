@@ -1,0 +1,19 @@
+.git
+.github
+.gitignore
+SECURITY.md
+README.md
+
+# Runtime state / secrets must never enter the Docker build context.
+data
+secrets
+.env
+.env.*
+*.pem
+*.key
+*.crt
+
+# Local editor/OS noise.
+.vscode
+.idea
+.DS_Store
