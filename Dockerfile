@@ -1,7 +1,7 @@
 FROM golang:1.26.7-bookworm AS builder
 
-ARG BRIDGE_VERSION=3.25.0
-ARG BRIDGE_COMMIT=f1f599e97167265cb0d10ad3d169269c324d9cc7
+ARG BRIDGE_VERSION=3.26.0
+ARG BRIDGE_COMMIT=726f7aa62ac993afc67ec566b36243d1c2bafa3d
 
 ENV GOTOOLCHAIN=local
 
@@ -21,10 +21,11 @@ RUN apt-get update \
 
 WORKDIR /src
 
-# Build the exact, immutable commit behind Proton Bridge v3.25.0. The release
+# Build the exact, immutable commit behind Proton Bridge v3.26.0. The release
 # commit is signed/verified upstream; pinning its full SHA prevents tag movement
-# from silently changing what this image compiles. Use the latest patched Go
-# 1.26 toolchain while remaining within Proton's declared toolchain line.
+# from silently changing what this image compiles. Proton 3.26.0 also contains
+# the upstream dependency security updates that resolve the fixable HIGH CVEs
+# present in the previous 3.25.0 build.
 RUN set -eux; \
     git init; \
     git remote add origin https://github.com/ProtonMail/proton-bridge.git; \
@@ -38,8 +39,8 @@ RUN set -eux; \
 
 FROM debian:bookworm-slim AS runtime
 
-ARG BRIDGE_VERSION=3.25.0
-ARG BRIDGE_COMMIT=f1f599e97167265cb0d10ad3d169269c324d9cc7
+ARG BRIDGE_VERSION=3.26.0
+ARG BRIDGE_COMMIT=726f7aa62ac993afc67ec566b36243d1c2bafa3d
 ARG BRIDGE_UID=1000
 ARG BRIDGE_GID=1000
 
