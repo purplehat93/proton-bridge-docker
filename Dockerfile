@@ -3,10 +3,8 @@ FROM debian:bookworm-slim AS verifier
 ARG BRIDGE_VERSION=3.25.0
 ARG BRIDGE_REVISION=1
 
-ENV DEBIAN_FRONTEND=noninteractive
-
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
        ca-certificates \
        curl \
        debsig-verify \
@@ -30,9 +28,10 @@ RUN set -eux; \
 FROM debian:bookworm-slim AS runtime
 
 ARG BRIDGE_VERSION=3.25.0
+ARG BRIDGE_UID=1000
+ARG BRIDGE_GID=1000
 
-ENV DEBIAN_FRONTEND=noninteractive \
-    BRIDGE_HOME=/data
+ENV BRIDGE_HOME=/data
 
 LABEL org.opencontainers.image.title="Proton Mail Bridge (headless Docker wrapper)" \
       org.opencontainers.image.description="Headless Proton Mail Bridge container using Proton's verified Linux package" \
@@ -44,17 +43,21 @@ LABEL org.opencontainers.image.title="Proton Mail Bridge (headless Docker wrappe
 # behind in the verifier stage and cannot increase the final attack surface.
 COPY --from=verifier /tmp/protonmail-bridge.deb /tmp/protonmail-bridge.deb
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
        ca-certificates \
        gnupg \
        pass \
        /tmp/protonmail-bridge.deb \
-    && rm -rf /var/lib/apt/lists/* /tmp/protonmail-bridge.deb
+    && rm -rf /var/lib/apt/lists/* /tmp/protonmail-bridge.deb \
+    && printf 'bridge:x:%s:%s:Proton Bridge:/data:/bin/sh\n' "${BRIDGE_UID}" "${BRIDGE_GID}" >> /etc/passwd \
+    && printf 'bridge:x:%s:\n' "${BRIDGE_GID}" >> /etc/group \
+    && mkdir -p /data \
+    && chown "${BRIDGE_UID}:${BRIDGE_GID}" /data
 
-COPY entrypoint.sh /usr/local/bin/proton-bridge-entrypoint
-RUN chmod 0755 /usr/local/bin/proton-bridge-entrypoint
+COPY --chmod=0755 entrypoint.sh /usr/local/bin/proton-bridge-entrypoint
 
 VOLUME ["/data"]
+USER ${BRIDGE_UID}:${BRIDGE_GID}
 
 ENTRYPOINT ["/usr/local/bin/proton-bridge-entrypoint"]
 CMD ["run"]
