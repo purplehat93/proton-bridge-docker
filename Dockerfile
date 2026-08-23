@@ -1,7 +1,9 @@
-FROM golang:1.26.2-bookworm AS builder
+FROM golang:1.26.7-bookworm AS builder
 
 ARG BRIDGE_VERSION=3.25.0
 ARG BRIDGE_COMMIT=f1f599e97167265cb0d10ad3d169269c324d9cc7
+
+ENV GOTOOLCHAIN=local
 
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -21,7 +23,8 @@ WORKDIR /src
 
 # Build the exact, immutable commit behind Proton Bridge v3.25.0. The release
 # commit is signed/verified upstream; pinning its full SHA prevents tag movement
-# from silently changing what this image compiles.
+# from silently changing what this image compiles. Use the latest patched Go
+# 1.26 toolchain while remaining within Proton's declared toolchain line.
 RUN set -eux; \
     git init; \
     git remote add origin https://github.com/ProtonMail/proton-bridge.git; \
