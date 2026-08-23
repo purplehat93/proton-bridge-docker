@@ -35,14 +35,14 @@ EOF
 case "${1:-run}" in
   init|cli)
     init_pass
-    exec protonmail-bridge --cli
+    exec bridge --cli
     ;;
   run)
     init_pass
-    exec protonmail-bridge --noninteractive
+    exec bridge --noninteractive
     ;;
   version)
-    exec protonmail-bridge --version
+    exec bridge --version
     ;;
   *)
     exec "$@"
