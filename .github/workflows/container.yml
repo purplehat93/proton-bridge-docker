@@ -48,6 +48,12 @@ jobs:
           push: false
           tags: proton-bridge:ci
 
+      - name: Verify non-root runtime
+        run: |
+          uid="$(docker run --rm --entrypoint sh proton-bridge:ci -c 'id -u')"
+          test "${uid}" != "0"
+          echo "Container default UID: ${uid}"
+
       - name: Smoke test Bridge binary
         run: docker run --rm proton-bridge:ci version
 
