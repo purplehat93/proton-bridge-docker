@@ -1,0 +1,14 @@
+# Runtime state and secrets
+data/
+.env
+.env.*
+!.env.example
+secrets/
+*.pem
+*.key
+*.crt
+
+# Local/editor noise
+.DS_Store
+.vscode/
+.idea/
