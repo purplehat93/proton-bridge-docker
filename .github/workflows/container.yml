@@ -4,7 +4,7 @@ on:
   pull_request:
   push:
     branches: [main]
-    tags: ["v*"]
+    tags: ["v*.*.*-*"]
 
 concurrency:
   group: container-${{ github.workflow }}-${{ github.ref }}
@@ -83,10 +83,8 @@ jobs:
           python3 - <<'PY'
           import json
           import sys
-
           with open("trivy-results.json", encoding="utf-8") as fh:
               report = json.load(fh)
-
           findings = []
           for result in report.get("Results") or []:
               target = result.get("Target", "?")
@@ -95,19 +93,10 @@ jobs:
                   fixed = vuln.get("FixedVersion") or ""
                   if severity not in {"HIGH", "CRITICAL"} or not fixed:
                       continue
-                  findings.append((
-                      severity,
-                      target,
-                      vuln.get("PkgName", "?"),
-                      vuln.get("VulnerabilityID", "?"),
-                      vuln.get("InstalledVersion", "?"),
-                      fixed,
-                  ))
-
+                  findings.append((severity, target, vuln.get("PkgName", "?"), vuln.get("VulnerabilityID", "?"), vuln.get("InstalledVersion", "?"), fixed))
           if not findings:
               print("No fixable HIGH/CRITICAL runtime vulnerabilities found.")
               raise SystemExit(0)
-
           print("Fixable HIGH/CRITICAL runtime vulnerabilities:")
           print("severity\ttarget\tpackage\tcve\tinstalled\tfixed")
           for row in sorted(findings):
@@ -185,9 +174,20 @@ jobs:
 
           if [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
             tags+=("${IMAGE}:latest")
-          fi
-          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
-            tags+=("${IMAGE}:${GITHUB_REF_NAME}")
+          elif [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            release="${GITHUB_REF_NAME#v}"
+            if [[ ! "${release}" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-([1-9][0-9]*)$ ]]; then
+              echo "Invalid Bridge image release tag: ${GITHUB_REF_NAME}; expected vUPSTREAM_VERSION-REVISION (for example v3.26.0-1)" >&2
+              exit 1
+            fi
+            upstream="${BASH_REMATCH[1]}"
+            revision="${BASH_REMATCH[2]}"
+            dockerfile_upstream="$(sed -n 's/^ARG BRIDGE_VERSION=//p' Dockerfile)"
+            if [[ "${upstream}" != "${dockerfile_upstream}" ]]; then
+              echo "Tag upstream version ${upstream} does not match Dockerfile BRIDGE_VERSION ${dockerfile_upstream}" >&2
+              exit 1
+            fi
+            tags+=("${IMAGE}:${upstream}-${revision}" "${IMAGE}:${upstream}")
           fi
 
           for tag in "${tags[@]}"; do
