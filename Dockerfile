@@ -1,4 +1,4 @@
-FROM golang:1.26.7-bookworm AS builder
+FROM golang:1.27.0-bookworm AS builder
 
 ARG BRIDGE_VERSION=3.26.0
 ARG BRIDGE_COMMIT=726f7aa62ac993afc67ec566b36243d1c2bafa3d
